@@ -8,11 +8,11 @@ public class MyChatServer {
     private DataInputStream streamIn = null;
     private DataOutputStream streamOut = null;
     private DataInputStream console = null;
+    private boolean done = false;
 
     private Thread readThread = new Thread(new Runnable() {
         @Override
         public void run() {
-            boolean done = false;
             while (!done) {
                 try {
                     String line = streamIn.readUTF();
@@ -22,13 +22,6 @@ public class MyChatServer {
                     System.out.println(t.getMessage());
                 }
             }
-            try {
-                if (socket != null) socket.close();
-                if (streamIn != null) streamIn.close();
-                if (streamOut != null) streamOut.close();
-            } catch (Throwable t) {
-                System.out.println(t.getMessage());
-            }
         }
     });
 
@@ -36,7 +29,7 @@ public class MyChatServer {
         @Override
         public void run() {
             String line;
-            while (true) {
+            while (!done) {
                 try {
                     line = console.readUTF();
                     streamOut.writeUTF(line);
@@ -65,7 +58,23 @@ public class MyChatServer {
             readThread.start();
             writeThread.start();
 
+            readThread.join();
+            writeThread.join();
+
         } catch(Throwable t) {
+            System.out.println(t.getMessage());
+        }
+
+        close();
+    }
+
+    private void close() {
+        try {
+            if (console != null) console.close();
+            if (socket != null) socket.close();
+            if (streamIn != null) streamIn.close();
+            if (streamOut != null) streamOut.close();
+        } catch (Throwable t) {
             System.out.println(t.getMessage());
         }
     }
