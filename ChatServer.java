@@ -1,49 +1,64 @@
-import java.net.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Iterator;
 
-public class ChatServer
-{  private Socket          socket   = null;
-    private ServerSocket    server   = null;
-    private DataInputStream streamIn =  null;
+public class ChatServer {
 
-    public ChatServer(int port)
-    {  try
-        {  System.out.println("Binding to port " + port + ", please wait  ...");
-            server = new ServerSocket(port);  
-            System.out.println("Server started: " + server);
-            System.out.println("Waiting for a client ..."); 
-            socket = server.accept();
-            System.out.println("Client accepted: " + socket);
-            open();
-            boolean done = false;
-            while (!done)
-            {  try
-                {  String line = streamIn.readUTF();
-                    System.out.println(line);
-                    done = line.equals(".bye");
-                }
-                catch(IOException ioe)
-                {  done = true;
-                }
-            }
-            close();
-        }
-        catch(IOException ioe)
-        {  System.out.println(ioe); 
-        }
-    }
-    public void open() throws IOException
-    {  streamIn = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-    }
-    public void close() throws IOException
-    {  if (socket != null)    socket.close();
-        if (streamIn != null)  streamIn.close();
-    }
-    public static void main(String args[])
-    {  ChatServer server = null;
-        if (args.length != 1)
-            System.out.println("Usage: java ChatServer port");
-        else
-            server = new ChatServer(Integer.parseInt(args[0]));
-    }
+  // Toy ChatServer to illustrate multi-threading
+	
+	private final int port = 7777;
+	private ServerSocket serverSocket;
+	private ArrayList<Socket> clientList;	
+
+	public ChatServer() {
+		try {
+			serverSocket = new ServerSocket(port);
+			serverSocket.setReuseAddress(true);
+		} catch (IOException e)
+		{
+			System.out.println(e.getStackTrace());
+		}
+		clientList = new ArrayList<Socket>();
+	}
+
+	public void startServer() throws IOException {
+		System.out.println("Accepting clients...");
+		while(true)
+		{
+			// wait for a client
+			Socket client = serverSocket.accept();
+			clientList.add(client);
+			System.out.println("New client accepted..." + client.getRemoteSocketAddress());
+			System.out.println("Total users: " + clientList.size());
+			ChatClientHandler handler = new ChatClientHandler(client,this);
+			Thread t = new Thread(handler);
+			t.start();
+		}
+	}
+	
+	public synchronized void sendChatMessageToAll(String msg) throws IOException {
+		for(Iterator<Socket> it=clientList.iterator(); it.hasNext();)
+		{
+			Socket client = it.next();
+			if( !client.isClosed() )
+			{
+				PrintWriter pw = new PrintWriter(client.getOutputStream());
+				pw.println(msg);
+				pw.flush();
+				//System.out.println("Sent to: " + client.getRemoteSocketAddress());
+			}
+		}
+	}
+
+	/**
+	 * @param args
+	 * @throws IOException 
+	 */
+	public static void main(String[] args) throws IOException {
+		new ChatServer().startServer();
+	}
+
 }
