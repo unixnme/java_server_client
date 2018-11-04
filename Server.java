@@ -1,7 +1,5 @@
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Scanner;
 
 public class Server {
     private ChatThread chatThread = null;
@@ -17,21 +15,7 @@ public class Server {
             System.out.println("client connected");
 
             chatThread = new ChatThread(socket, name);
-            chatThread.start();
-
-            PrintWriter outputStream = new PrintWriter(socket.getOutputStream());
-
-            Scanner keyboard = new Scanner(System.in);
-            while (keyboard.hasNext()) {
-                String msg = keyboard.nextLine();
-                outputStream.println(msg);
-                outputStream.flush();
-            }
-
-            socket.close();
-            keyboard.close();
-            outputStream.close();
-
+            chatThread.startChat();
         } catch (Throwable t) {
             System.out.println(t.getMessage());
         }
