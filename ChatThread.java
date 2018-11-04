@@ -9,6 +9,7 @@ public class ChatThread extends Thread {
 
     /**
      * Socket must be already connected
+     *
      * @param socket
      * @param name
      */
@@ -37,6 +38,22 @@ public class ChatThread extends Thread {
         this.socket = socket;
     }
 
+    public void startChat() throws Throwable {
+        this.start(); // receive incoming messages
+
+        PrintWriter outputStream = new PrintWriter(socket.getOutputStream());
+        Scanner keyboard = new Scanner(System.in);
+        while (keyboard.hasNext()) {
+            String msg = keyboard.nextLine();
+            outputStream.println(msg);
+            outputStream.flush();
+        }
+
+        socket.close();
+        keyboard.close();
+        outputStream.close();
+    }
+
     public static void main(String[] args) {
         if (args.length != 2) {
             System.out.println("Usage: java ChatThread server_address port");
@@ -44,19 +61,7 @@ public class ChatThread extends Thread {
             try {
                 Socket socket = new Socket(args[0], Integer.parseInt(args[1]));
                 ChatThread t = new ChatThread(socket, "client");
-                t.start();
-
-                PrintWriter outputStream = new PrintWriter(socket.getOutputStream());
-                Scanner keyboard = new Scanner(System.in);
-                while (keyboard.hasNext()) {
-                    String msg = keyboard.nextLine();
-                    outputStream.println(msg);
-                    outputStream.flush();
-                }
-
-                socket.close();
-                keyboard.close();
-                outputStream.close();
+                t.startChat();
             } catch (Throwable t) {
                 System.out.println(t.getMessage());
             }
